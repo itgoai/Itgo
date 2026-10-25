@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>ItGo Test Line</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@112,800&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+/* Layout: settings strip, then two phones side by side (stacked on narrow screens), calendar below */
+:root{
+  --bg:#eef1f4; --card:#fff; --ink:#14212e; --muted:#5a6876; --line:#d6dde4;
+  --accent:#e08a1e; --cust:#1f5f99; --cust-ink:#fff; --them:#e6eaef; --owner:#1d7a4a;
+  --pend:#9a5a00; --pend-bg:#fdf0db; --ok:#1d7a4a; --ok-bg:#e3f3ea; --err:#b3261e;
+  --display:"Archivo","Arial Black",system-ui,sans-serif;
+  --body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0e151c; --card:#17212b; --ink:#eef2f6; --muted:#9fadba; --line:#2a3744;
+  --accent:#f2a33b; --cust:#3b82c4; --them:#24313d; --owner:#3aa86b;
+  --pend:#f5c169; --pend-bg:#3a2c12; --ok:#6fd39c; --ok-bg:#16342a; --err:#ff8a80; color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.45 var(--body);
+  padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+.wrap{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1{font:800 26px/1.1 var(--display);margin:0}
+h1 span{color:var(--accent)}
+.sub{color:var(--muted);margin:4px 0 0}
+details{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 16px}
+summary{font-weight:700;cursor:pointer}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+label{display:flex;flex-direction:column;gap:4px;font-weight:700;font-size:15px}
+input{font:inherit;padding:12px;border-radius:10px;border:2px solid var(--line);background:var(--bg);color:var(--ink);min-width:0}
+button{font:inherit;font-weight:700;cursor:pointer;border:0;border-radius:10px;padding:12px 16px}
+button:focus-visible,input:focus-visible{outline:3px solid var(--cust);outline-offset:2px}
+.phones{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.phone{background:var(--card);border:1px solid var(--line);border-radius:22px;display:flex;flex-direction:column;min-width:0;height:560px;overflow:hidden}
+.phone header{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.phone header b{font:800 17px var(--display)}
+.phone header small{color:var(--muted);font-size:14px}
+.log{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px}
+.b{max-width:82%;padding:10px 13px;border-radius:18px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:16px}
+.b.me{align-self:flex-end;background:var(--cust);color:var(--cust-ink);border-bottom-right-radius:6px}
+.owner .b.me{background:var(--owner)}
+.b.them{align-self:flex-start;background:var(--them);color:var(--ink);border-bottom-left-radius:6px}
+.b.sys{align-self:center;background:none;color:var(--muted);font-size:14px;text-align:center}
+.b.err{align-self:center;color:var(--err);font-size:14px;text-align:center}
+.typing{align-self:flex-start;color:var(--muted);font-size:14px}
+form{display:flex;gap:8px;padding:10px;border-top:1px solid var(--line)}
+form input{flex:1}
+.send{background:var(--cust);color:#fff}
+.owner .send{background:var(--owner)}
+.quick{display:flex;gap:8px;padding:0 10px 10px}
+.quick button{flex:1;background:var(--bg);color:var(--ink);border:2px solid var(--line);padding:10px}
+.ghost{background:none;color:var(--muted);padding:6px 8px;font-size:14px;text-decoration:underline}
+.cal{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+.cal-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
+.cal-head b{font:800 18px var(--display)}
+.row{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.row .when{font-weight:700;font-variant-numeric:tabular-nums}
+.row .who{color:var(--muted);min-width:0}
+.pill{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:3px 10px;border-radius:99px}
+.pill.pending{background:var(--pend-bg);color:var(--pend)}
+.pill.booked{background:var(--ok-bg);color:var(--ok)}
+.empty{color:var(--muted)}
+.tips{color:var(--muted);font-size:15px;margin:0}
+@media (max-width:720px){.phones,.grid{grid-template-columns:1fr}.phone{height:480px}.row{grid-template-columns:1fr auto}.row .who{grid-column:1}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div>
+    <h1>ItGo<span>.ai</span> test line</h1>
+    <p class="sub">Text the AI like a customer on the left. Approve bookings as the owner on the right. Nothing is sent to real phones.</p>
+  </div>
+
+  <details id="setup">
+    <summary>Connection settings</summary>
+    <div class="grid">
+      <label for="url">Function address
+        <input id="url" placeholder="https://xxxx.supabase.co/functions/v1/sms-webhook" autocomplete="off"></label>
+      <label for="key">Test password (TEST_KEY)
+        <input id="key" type="password" autocomplete="off"></label>
+      <label for="biz">Business name
+        <input id="biz" value="ItGo.ai"></label>
+      <label for="cust">Pretend customer phone
+        <input id="cust" value="+15555550100" inputmode="tel"></label>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+      <button class="send" id="saveSet" type="button">Save and connect</button>
+      <span id="status" class="tips" style="align-self:center"></span>
+    </div>
+  </details>
+
+  <div class="phones">
+    <section class="phone" aria-label="Customer phone">
+      <header><div><b>Customer</b><br><small id="custLbl">+15555550100</small></div>
+        <button class="ghost" id="reset" type="button">Start over</button></header>
+      <div class="log" id="custLog"><div class="b sys">Say hi like a customer would. Try: "How much for a full detail on my F-150? Dog hair everywhere."</div></div>
+      <form id="custForm"><input id="custIn" placeholder="Text the business…" autocomplete="off" aria-label="Customer message"><button class="send">Send</button></form>
+    </section>
+
+    <section class="phone owner" aria-label="Owner phone">
+      <header><div><b>Owner</b><br><small id="ownerLbl">Approval texts land here</small></div></header>
+      <div class="log" id="ownerLog"><div class="b sys">When the AI books a time, the approval request shows up here.</div></div>
+      <div class="quick"><button type="button" data-q="YES">Approve (YES)</button><button type="button" data-q="NO">Decline (NO)</button></div>
+      <form id="ownerForm"><input id="ownerIn" placeholder="Reply as the owner…" autocomplete="off" aria-label="Owner message"><button class="send">Send</button></form>
+    </section>
+  </div>
+
+  <section class="cal">
+    <div class="cal-head"><b>Upcoming calendar</b><button class="ghost" id="refresh" type="button">Refresh</button></div>
+    <div id="jobs"><p class="empty">Connect to see bookings.</p></div>
+  </section>
+
+  <p class="tips">Each "Start over" wipes this pretend customer, their texts and their jobs, so you can test a fresh conversation. Change the customer phone to test a second customer.</p>
+</div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const get = k => { try { return localStorage.getItem("itgo-test-" + k) || ""; } catch (e) { return ""; } };
+  const set = (k, v) => { try { localStorage.setItem("itgo-test-" + k, v); } catch (e) {} };
+  let ownerPhone = "";
+
+  ["url", "key", "biz", "cust"].forEach(k => { const v = get(k); if (v) $(k).value = v; });
+  if (!get("url") || !get("key")) $("setup").open = true;
+  $("custLbl").textContent = $("cust").value;
+
+  function bubble(log, text, cls) {
+    const d = document.createElement("div");
+    d.className = "b " + cls;
+    d.textContent = text;
+    $(log).appendChild(d);
+    $(log).scrollTop = $(log).scrollHeight;
+    return d;
+  }
+
+  async function call(payload) {
+    const url = $("url").value.trim(), key = $("key").value.trim();
+    if (!url || !key) { $("setup").open = true; throw new Error("Add the function address and test password in Connection settings."); }
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-test-key": key },
+      body: JSON.stringify(Object.assign({ business: $("biz").value.trim() }, payload)),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || data.msg || ("The function answered with error " + res.status + "."));
+    return data;
+  }
+
+  function showOutbox(outbox) {
+    (outbox || []).forEach(m => {
+      if (m.to === ownerPhone) bubble("ownerLog", m.body, "them");
+      else if (m.to === $("cust").value.trim()) bubble("custLog", m.body, "them");
+    });
+  }
+
+  async function send(who, text) {
+    const log = who === "owner" ? "ownerLog" : "custLog";
+    const from = who === "owner" ? ownerPhone : $("cust").value.trim();
+    if (who === "owner" && !ownerPhone) { bubble(log, "Connect first so I know the owner's number.", "err"); return; }
+    bubble(log, text, "me");
+    const t = document.createElement("div"); t.className = "typing"; t.textContent = "typing…"; $(log).appendChild(t);
+    try {
+      const data = await call({ from, body: text });
+      t.remove();
+      if (data.reply) bubble(log, data.reply, "them");
+      showOutbox(data.outbox);
+      loadJobs();
+    } catch (e) { t.remove(); bubble(log, e.message, "err"); }
+  }
+
+  async function loadJobs() {
+    try {
+      const data = await call({ action: "jobs", from: $("cust").value.trim() });
+      ownerPhone = data.owner_phone || "";
+      $("ownerLbl").textContent = data.business + " owner";
+      $("status").textContent = "Connected to " + data.business + ".";
+      if (!data.jobs.length) { $("jobs").innerHTML = '<p class="empty">Nothing booked yet.</p>'; return; }
+      $("jobs").innerHTML = "";
+      data.jobs.forEach(j => {
+        const r = document.createElement("div"); r.className = "row";
+        r.innerHTML = '<span class="when"></span><span class="who"></span><span class="pill"></span>';
+        r.children[0].textContent = j.when;
+        r.children[1].textContent = (j.customer || "Customer") + " · " + j.service + " · $" + Number(j.price);
+        r.children[2].textContent = j.status === "pending" ? "Needs approval" : "Booked";
+        r.children[2].classList.add(j.status);
+        $("jobs").appendChild(r);
+      });
+    } catch (e) { $("status").textContent = e.message; }
+  }
+
+  $("saveSet").onclick = () => {
+    ["url", "key", "biz", "cust"].forEach(k => set(k, $(k).value.trim()));
+    $("custLbl").textContent = $("cust").value.trim();
+    $("status").textContent = "Connecting…";
+    loadJobs().then(() => { if (ownerPhone) $("setup").open = false; });
+  };
+  $("custForm").onsubmit = e => { e.preventDefault(); const v = $("custIn").value.trim(); if (!v) return; $("custIn").value = ""; send("cust", v); };
+  $("ownerForm").onsubmit = e => { e.preventDefault(); const v = $("ownerIn").value.trim(); if (!v) return; $("ownerIn").value = ""; send("owner", v); };
+  document.querySelectorAll("[data-q]").forEach(b => b.onclick = () => send("owner", b.dataset.q));
+  $("refresh").onclick = loadJobs;
+  $("reset").onclick = async () => {
+    try {
+      await call({ action: "reset", from: $("cust").value.trim() });
+      $("custLog").innerHTML = ""; bubble("custLog", "Fresh start. This customer's texts and jobs were removed.", "sys");
+      loadJobs();
+    } catch (e) { bubble("custLog", e.message, "err"); }
+  };
+
+  if (get("url") && get("key")) loadJobs();
+})();
+</script>
+</body>
+</html>
