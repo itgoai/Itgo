@@ -109,7 +109,7 @@ form input{flex:1}
   </div>
 
   <section class="cal">
-    <div class="cal-head"><b>Upcoming calendar</b><span><button class="ghost" id="finish" type="button">Pretend job is done</button> <button class="ghost" id="remind" type="button">Send follow-ups now</button> <button class="ghost" id="refresh" type="button">Refresh</button></span></div>
+    <div class="cal-head"><b>Upcoming calendar</b><span><button class="ghost" id="call" type="button">Missed call</button> <button class="ghost" id="finish" type="button">Pretend job is done</button> <button class="ghost" id="remind" type="button">Send follow-ups now</button> <button class="ghost" id="rebook" type="button">6 weeks later</button> <button class="ghost" id="report" type="button">Weekly report</button> <button class="ghost" id="refresh" type="button">Refresh</button></span></div>
     <div id="jobs"><p class="empty">Connect to see bookings.</p></div>
   </section>
 
@@ -222,6 +222,19 @@ form input{flex:1}
       loadJobs();
     } catch (e) { bubble("custLog", e.message, "err"); }
   };
+  // Missed call, rebooking invite and the Monday report: run now and show the texts they'd send
+  async function fastForward(action, note) {
+    try {
+      bubble("custLog", note, "sys");
+      const data = await call({ action, from: $("cust").value.trim() });
+      ownerPhone = data.owner_phone || ownerPhone;
+      showOutbox(data.outbox);
+      loadJobs();
+    } catch (e) { bubble("custLog", e.message, "err"); }
+  }
+  $("call").onclick = () => fastForward("missed_call", "Pretend this customer called and nobody picked up.");
+  $("rebook").onclick = () => fastForward("rebook", "Pretend time jump: their last job was 6 weeks ago.");
+  $("report").onclick = () => fastForward("report", "Monday report sent to the owner's phone.");
   $("reset").onclick = async () => {
     try {
       await call({ action: "reset", from: $("cust").value.trim() });

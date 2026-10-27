@@ -78,9 +78,12 @@ form input{flex:1;min-width:0;font:inherit;padding:12px;border-radius:12px;borde
   </div>
 
   <div class="after">
-    <b>After it's booked</b>
+    <b>See what else it does</b>
+    <button type="button" id="call">A customer calls while you're busy</button>
     <button type="button" id="remind">Day before: reminder</button>
     <button type="button" id="review">After the job: review request</button>
+    <button type="button" id="rebook">6 weeks later: invite back</button>
+    <button type="button" id="report">Monday: your weekly results</button>
   </div>
 </div>
 
@@ -192,6 +195,17 @@ form input{flex:1;min-width:0;font:inherit;padding:12px;border-radius:12px;borde
       mine.forEach(m => bubble("custLog", m.body, "them"));
     } catch (e) { bubble("custLog", e.message, "err"); }
   };
+  // The other fast-forwards: say what happened, then show the texts it would send
+  async function fastForward(action, log, note) {
+    try {
+      bubble(log, note, "sys");
+      const data = await call({ action });
+      showOutbox(data.outbox);
+    } catch (e) { bubble(log, e.message, "err"); }
+  }
+  $("call").onclick = () => fastForward("missed_call", "custLog", "You called the business. They were busy on a job and didn't pick up.");
+  $("rebook").onclick = () => fastForward("rebook", "custLog", "Fast-forward: 6 weeks since the last detail.");
+  $("report").onclick = () => fastForward("report", "ownerLog", "Fast-forward: Monday morning.");
 
   start();
 })();
