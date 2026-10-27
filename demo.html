@@ -86,12 +86,22 @@ form input{flex:1;min-width:0;font:inherit;padding:12px;border-radius:12px;borde
 
 <script>
 (function(){
-  // Uses the connection saved on the test page (same site, same storage). One fixed pretend customer, wiped on load.
+  // Public by default: anyone with the link talks to the ItGo.ai test business, no password.
+  // With ?biz=Name on a device that saved the test page connection, it demos that business instead.
   const $ = id => document.getElementById(id);
   const get = k => { try { return localStorage.getItem("itgo-test-" + k) || ""; } catch (e) { return ""; } };
-  const url = get("url"), key = get("key");
-  const biz = new URLSearchParams(location.search).get("biz") || get("biz") || "ItGo.ai";
-  const CUST = "+15555550199";
+  const bizParam = new URLSearchParams(location.search).get("biz");
+  const priv = !!(bizParam && get("url") && get("key"));
+  const url = priv ? get("url") : "https://htlssigvpaacxenogkog.supabase.co/functions/v1/sms-webhook?demo=1";
+  const key = priv ? get("key") : "";
+  const biz = bizParam || "ItGo.ai";
+  // Each visitor gets their own pretend number, so two people can try the demo at once
+  let CUST = "";
+  try { CUST = sessionStorage.getItem("itgo-demo-phone") || ""; } catch (e) {}
+  if (!/^\+1555019\d{4}$/.test(CUST)) {
+    CUST = "+1555019" + String(Math.floor(Math.random() * 10000)).padStart(4, "0");
+    try { sessionStorage.setItem("itgo-demo-phone", CUST); } catch (e) {}
+  }
   const CHIPS = [
     "Hey! How much for a full detail? My truck is a mess, kids and a dog",
     "Do you have anything Saturday morning?",
@@ -109,10 +119,11 @@ form input{flex:1;min-width:0;font:inherit;padding:12px;border-radius:12px;borde
   }
 
   async function call(payload) {
-    if (!url || !key) throw new Error("Open the test page on this device once and tap Save and connect, then come back.");
+    const headers = { "content-type": "application/json" };
+    if (priv) headers["x-test-key"] = key;
     const res = await fetch(url, {
       method: "POST",
-      headers: { "content-type": "application/json", "x-test-key": key },
+      headers,
       body: JSON.stringify(Object.assign({ business: biz, from: CUST }, payload)),
     });
     const data = await res.json().catch(() => ({}));
@@ -133,9 +144,9 @@ form input{flex:1;min-width:0;font:inherit;padding:12px;border-radius:12px;borde
     const t = document.createElement("div"); t.className = "typing"; t.textContent = "typing…"; $(log).appendChild(t);
     $(log).scrollTop = $(log).scrollHeight;
     try {
-      const data = await call({ from: who === "owner" ? ownerPhone : CUST, body: text });
+      const data = await call(who === "owner" ? { from: priv ? ownerPhone : CUST, who, body: text } : { body: text });
       t.remove();
-      ownerPhone = data.owner_phone || ownerPhone;
+      if (priv) ownerPhone = data.owner_phone || ownerPhone;
       if (data.reply) bubble(log, data.reply, "them");
       showOutbox(data.outbox);
     } catch (e) { t.remove(); bubble(log, e.message, "err"); }
@@ -145,9 +156,8 @@ form input{flex:1;min-width:0;font:inherit;padding:12px;border-radius:12px;borde
     $("custLog").innerHTML = "";
     $("ownerLog").innerHTML = '<div class="b sys">When the assistant books a time, it texts you here. Reply YES to confirm or NO to decline.</div>';
     try {
-      await call({ action: "reset" });
-      const data = await call({ action: "jobs" });
-      ownerPhone = data.owner_phone || "";
+      const data = priv ? (await call({ action: "reset" }), await call({ action: "jobs" })) : await call({ action: "reset" });
+      ownerPhone = priv ? data.owner_phone || "" : "owner";
       $("ownerLbl").textContent = data.business + " owner's cell";
       bubble("custLog", "Pretend you're a customer texting " + data.business + ". Type anything, or tap an idea below.", "sys");
     } catch (e) { bubble("custLog", e.message, "err"); }
