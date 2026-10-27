@@ -212,7 +212,7 @@ form input{flex:1}
   // Runs reminders (confirmed jobs through tomorrow) and review requests (finished jobs) right away
   $("remind").onclick = async () => {
     try {
-      const data = await call({ action: "reminders" });
+      const data = await call({ action: "reminders", from: $("cust").value.trim() });
       const mine = (data.outbox || []).filter(m => m.to === $("cust").value.trim());
       mine.forEach(m => bubble("custLog", m.body, "them"));
       const others = (data.outbox || []).length - mine.length;
