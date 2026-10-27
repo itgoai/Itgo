@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>ItGo.ai demo</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@112,800&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+/* Sales demo: same engine as the test page, with the setup and test tools hidden. Two phones side by side. */
+:root{
+  --bg:#0e151c; --card:#17212b; --ink:#eef2f6; --muted:#9fadba; --line:#2a3744;
+  --accent:#f2a33b; --cust:#3b82c4; --them:#24313d; --owner:#3aa86b; --err:#ff8a80;
+  --display:"Archivo","Arial Black",system-ui,sans-serif;
+  --body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.45 var(--body);
+  padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+.wrap{max-width:1040px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+h1{font:800 30px/1.1 var(--display);margin:0}
+h1 span{color:var(--accent)}
+.sub{color:var(--muted);margin:6px 0 0;max-width:60ch}
+button{font:inherit;font-weight:700;cursor:pointer;border:0;border-radius:10px;padding:12px 16px}
+button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.ghost{background:none;color:var(--muted);text-decoration:underline;padding:8px}
+.phones{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.phone{background:var(--card);border:1px solid var(--line);border-radius:26px;display:flex;flex-direction:column;min-width:0;height:min(600px,calc(100vh - 230px));min-height:420px;overflow:hidden}
+.phone header{padding:14px 18px;border-bottom:1px solid var(--line)}
+.phone header b{font:800 19px var(--display)}
+.phone header small{display:block;color:var(--muted);font-size:15px}
+.log{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px}
+.b{max-width:84%;padding:10px 14px;border-radius:18px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:17px}
+.b.me{align-self:flex-end;background:var(--cust);color:#fff;border-bottom-right-radius:6px}
+.owner .b.me{background:var(--owner)}
+.b.them{align-self:flex-start;background:var(--them);border-bottom-left-radius:6px}
+.b.sys{align-self:center;background:none;color:var(--muted);font-size:15px;text-align:center;max-width:95%}
+.b.err{align-self:center;color:var(--err);font-size:15px;text-align:center}
+.typing{align-self:flex-start;color:var(--muted);font-size:15px}
+.chips{display:flex;gap:8px;padding:0 10px 10px;overflow-x:auto}
+.chips button{flex:none;background:none;color:var(--ink);border:2px solid var(--line);padding:8px 12px;font-weight:400;font-size:15px;border-radius:99px}
+form{display:flex;gap:8px;padding:10px;border-top:1px solid var(--line)}
+form input{flex:1;min-width:0;font:inherit;padding:12px;border-radius:12px;border:2px solid var(--line);background:var(--bg);color:var(--ink)}
+.send{background:var(--cust);color:#fff}
+.owner .send{background:var(--owner)}
+.after{display:flex;gap:10px;flex-wrap:wrap;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 16px}
+.after b{margin-right:auto}
+.after button{background:none;color:var(--ink);border:2px solid var(--line)}
+@media (max-width:760px){.phones{grid-template-columns:1fr}.phone{height:480px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <h1>ItGo<span>.ai</span> live demo</h1>
+      <p class="sub">Text like a customer on the left. Booking requests and heads-ups land on the owner's phone on the right. This is the real assistant, but nothing goes to real phones.</p>
+    </div>
+    <button class="ghost" id="reset" type="button">Start over</button>
+  </div>
+
+  <div class="phones">
+    <section class="phone" aria-label="Customer's phone">
+      <header><b>Your customer</b><small>texting your business number</small></header>
+      <div class="log" id="custLog"></div>
+      <div class="chips" id="chips"></div>
+      <form id="custForm"><input id="custIn" placeholder="Text the business…" autocomplete="off" aria-label="Customer message"><button class="send">Send</button></form>
+    </section>
+
+    <section class="phone owner" aria-label="Owner's phone">
+      <header><b>You</b><small id="ownerLbl">the owner's cell</small></header>
+      <div class="log" id="ownerLog"><div class="b sys">When the assistant books a time, it texts you here. Reply YES to confirm or NO to decline.</div></div>
+      <div class="chips"><button type="button" data-q="YES">YES</button><button type="button" data-q="NO">NO</button></div>
+      <form id="ownerForm"><input id="ownerIn" placeholder="Reply…" autocomplete="off" aria-label="Owner message"><button class="send">Send</button></form>
+    </section>
+  </div>
+
+  <div class="after">
+    <b>After it's booked</b>
+    <button type="button" id="remind">Day before: reminder</button>
+    <button type="button" id="review">After the job: review request</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  // Uses the connection saved on the test page (same site, same storage). One fixed pretend customer, wiped on load.
+  const $ = id => document.getElementById(id);
+  const get = k => { try { return localStorage.getItem("itgo-test-" + k) || ""; } catch (e) { return ""; } };
+  const url = get("url"), key = get("key");
+  const biz = new URLSearchParams(location.search).get("biz") || get("biz") || "ItGo.ai";
+  const CUST = "+15555550199";
+  const CHIPS = [
+    "Hey! How much for a full detail? My truck is a mess, kids and a dog",
+    "Do you have anything Saturday morning?",
+    "That's a little more than I wanted to spend",
+    "What's included in the interior one?",
+  ];
+  let ownerPhone = "";
+
+  function bubble(log, text, cls) {
+    const d = document.createElement("div");
+    d.className = "b " + cls;
+    d.textContent = text;
+    $(log).appendChild(d);
+    $(log).scrollTop = $(log).scrollHeight;
+  }
+
+  async function call(payload) {
+    if (!url || !key) throw new Error("Open the test page on this device once and tap Save and connect, then come back.");
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-test-key": key },
+      body: JSON.stringify(Object.assign({ business: biz, from: CUST }, payload)),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || ("Something went wrong (" + res.status + ")."));
+    return data;
+  }
+
+  function showOutbox(outbox) {
+    (outbox || []).forEach(m => {
+      if (m.to === ownerPhone) bubble("ownerLog", m.body, "them");
+      else if (m.to === CUST) bubble("custLog", m.body, "them");
+    });
+  }
+
+  async function send(who, text) {
+    const log = who === "owner" ? "ownerLog" : "custLog";
+    bubble(log, text, "me");
+    const t = document.createElement("div"); t.className = "typing"; t.textContent = "typing…"; $(log).appendChild(t);
+    $(log).scrollTop = $(log).scrollHeight;
+    try {
+      const data = await call({ from: who === "owner" ? ownerPhone : CUST, body: text });
+      t.remove();
+      ownerPhone = data.owner_phone || ownerPhone;
+      if (data.reply) bubble(log, data.reply, "them");
+      showOutbox(data.outbox);
+    } catch (e) { t.remove(); bubble(log, e.message, "err"); }
+  }
+
+  async function start() {
+    $("custLog").innerHTML = "";
+    $("ownerLog").innerHTML = '<div class="b sys">When the assistant books a time, it texts you here. Reply YES to confirm or NO to decline.</div>';
+    try {
+      await call({ action: "reset" });
+      const data = await call({ action: "jobs" });
+      ownerPhone = data.owner_phone || "";
+      $("ownerLbl").textContent = data.business + " owner's cell";
+      bubble("custLog", "Pretend you're a customer texting " + data.business + ". Type anything, or tap an idea below.", "sys");
+    } catch (e) { bubble("custLog", e.message, "err"); }
+  }
+
+  CHIPS.forEach(c => {
+    const b = document.createElement("button");
+    b.type = "button"; b.textContent = c;
+    b.onclick = () => send("cust", c);
+    $("chips").appendChild(b);
+  });
+  $("custForm").onsubmit = e => { e.preventDefault(); const v = $("custIn").value.trim(); if (!v) return; $("custIn").value = ""; send("cust", v); };
+  $("ownerForm").onsubmit = e => { e.preventDefault(); const v = $("ownerIn").value.trim(); if (!v || !ownerPhone) return; $("ownerIn").value = ""; send("owner", v); };
+  document.querySelectorAll("[data-q]").forEach(b => b.onclick = () => ownerPhone && send("owner", b.dataset.q));
+  $("reset").onclick = start;
+
+  // Follow-up texts: reminders only go to confirmed jobs in the next 2 days, review requests after a confirmed job is done
+  $("remind").onclick = async () => {
+    try {
+      const data = await call({ action: "reminders" });
+      const mine = (data.outbox || []).filter(m => m.to === CUST);
+      if (mine.length) mine.forEach(m => bubble("custLog", m.body, "them"));
+      else bubble("custLog", "No reminder due yet. It goes out automatically the day before a confirmed job. Book a time in the next 2 days and approve it to see one.", "sys");
+    } catch (e) { bubble("custLog", e.message, "err"); }
+  };
+  $("review").onclick = async () => {
+    try {
+      await call({ action: "finish" });
+      bubble("custLog", "Fast-forward: the job finished a few hours ago.", "sys");
+      const data = await call({ action: "reminders" });
+      const mine = (data.outbox || []).filter(m => m.to === CUST);
+      mine.forEach(m => bubble("custLog", m.body, "them"));
+    } catch (e) { bubble("custLog", e.message, "err"); }
+  };
+
+  start();
+})();
+</script>
+</body>
+</html>
