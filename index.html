@@ -109,7 +109,7 @@ form input{flex:1}
   </div>
 
   <section class="cal">
-    <div class="cal-head"><b>Upcoming calendar</b><button class="ghost" id="refresh" type="button">Refresh</button></div>
+    <div class="cal-head"><b>Upcoming calendar</b><span><button class="ghost" id="finish" type="button">Pretend job is done</button> <button class="ghost" id="remind" type="button">Send follow-ups now</button> <button class="ghost" id="refresh" type="button">Refresh</button></span></div>
     <div id="jobs"><p class="empty">Connect to see bookings.</p></div>
   </section>
 
@@ -201,6 +201,27 @@ form input{flex:1}
   $("ownerForm").onsubmit = e => { e.preventDefault(); const v = $("ownerIn").value.trim(); if (!v) return; $("ownerIn").value = ""; send("owner", v); };
   document.querySelectorAll("[data-q]").forEach(b => b.onclick = () => send("owner", b.dataset.q));
   $("refresh").onclick = loadJobs;
+  // Moves this customer's next confirmed job into the past, so a review request is due
+  $("finish").onclick = async () => {
+    try {
+      await call({ action: "finish", from: $("cust").value.trim() });
+      bubble("custLog", "Pretend time jump: their job finished 3 hours ago. Tap Send follow-ups now.", "sys");
+      loadJobs();
+    } catch (e) { bubble("custLog", e.message, "err"); }
+  };
+  // Runs reminders (confirmed jobs through tomorrow) and review requests (finished jobs) right away
+  $("remind").onclick = async () => {
+    try {
+      const data = await call({ action: "reminders" });
+      const mine = (data.outbox || []).filter(m => m.to === $("cust").value.trim());
+      mine.forEach(m => bubble("custLog", m.body, "them"));
+      const others = (data.outbox || []).length - mine.length;
+      bubble("custLog", (data.outbox || []).length
+        ? "Follow-up texts sent: " + data.outbox.length + (others ? " (" + others + " to other pretend customers)" : "") + "."
+        : "Nothing due. Reminders go to confirmed jobs through tomorrow, review requests to finished jobs, once each.", "sys");
+      loadJobs();
+    } catch (e) { bubble("custLog", e.message, "err"); }
+  };
   $("reset").onclick = async () => {
     try {
       await call({ action: "reset", from: $("cust").value.trim() });
